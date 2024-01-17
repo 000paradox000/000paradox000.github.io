@@ -16,22 +16,26 @@ function getDateTime(cityName) {
     const cityTimezone = cityTimezones[cityName];
     const currentTime = moment().tz(cityTimezone);
     const dateTimeFmt = "YYYY-MM-DD HH:mm:ss";
+    const monthWeekdayFmt = "MMMM, dddd";
     const [dateStr, timeStr] = currentTime.format(dateTimeFmt).split(" ");
+    const monthWeekdayStr = currentTime.format(monthWeekdayFmt);
 
-    return [dateStr, timeStr];
+    return [dateStr, monthWeekdayStr, timeStr];
 }
 
 function displayCityDateTime(cityName) {
-    const [dateStr, timeStr] = getDateTime(cityName);
+    const [dateStr, monthWeekdayStr, timeStr] = getDateTime(cityName);
     const tableBody = document.getElementById("cityDateTimeBody");
 
     const row = tableBody.insertRow();
     const cellCity = row.insertCell(0);
     const cellDate = row.insertCell(1);
-    const cellTime = row.insertCell(2);
+    const monthWeekday = row.insertCell(2);
+    const cellTime = row.insertCell(3);
 
     cellCity.textContent = cityName;
     cellDate.textContent = dateStr;
+    monthWeekday.textContent = monthWeekdayStr;
     cellTime.textContent = timeStr;
 }
 
