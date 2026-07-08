@@ -1,33 +1,57 @@
-const cities = [
+const cityTimezones = [
+    { name: 'Mexico City', timezone: 'America/Mexico_City' },
+    { name: 'Bogota', timezone: 'America/Bogota' },
+    { name: 'Buenos Aires', timezone: 'America/Argentina/Buenos_Aires' },
+    { name: 'London', timezone: 'Europe/London' },
+    { name: 'Madrid', timezone: 'Europe/Madrid' },
+    { name: 'Paris', timezone: 'Europe/Paris' },
+    { name: 'Berlin', timezone: 'Europe/Berlin' },
+    { name: 'Warsaw', timezone: 'Europe/Warsaw' },
     { name: 'New Delhi', timezone: 'Asia/Kolkata' },
     { name: 'Tokyo', timezone: 'Asia/Tokyo' },
-    { name: 'Buenos Aires', timezone: 'America/Argentina/Buenos_Aires' },
-    { name: 'Madrid', timezone: 'Europe/Madrid' },
-    { name: 'Berlin', timezone: 'Europe/Berlin' },
-    { name: 'London', timezone: 'Europe/London' },
-    { name: 'Bogota', timezone: 'America/Bogota' },
 ];
 
 const cardMap = new Map();
 let timerId;
 
-function assertMomentTimezoneLoaded() {
-    if (!window.moment || !moment.tz) {
-        throw new Error('Moment Timezone failed to load. Check the CDN script URLs.');
+const formatters = new Map();
+
+function getFormatter(timezone, options) {
+    const key = `${timezone}-${JSON.stringify(options)}`;
+
+    if (!formatters.has(key)) {
+        formatters.set(
+            key,
+            new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                ...options,
+            })
+        );
     }
+
+    return formatters.get(key);
 }
 
 function getDateTime(timezone) {
-    assertMomentTimezoneLoaded();
-
-    const currentTime = moment().tz(timezone);
+    const now = new Date();
 
     return {
-        date: currentTime.format('YYYY-MM-DD'),
-        month: currentTime.format('MMMM'),
-        weekday: currentTime.format('dddd'),
-        time: currentTime.format('HH:mm:ss'),
-        zone: currentTime.format('z'),
+        date: getFormatter(timezone, {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        }).format(now),
+        month: getFormatter(timezone, { month: 'long' }).format(now),
+        weekday: getFormatter(timezone, { weekday: 'long' }).format(now),
+        time: getFormatter(timezone, {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+        }).format(now),
+        zone: getFormatter(timezone, { timeZoneName: 'short' })
+            .formatToParts(now)
+            .find((part) => part.type === 'timeZoneName')?.value || timezone,
     };
 }
 
@@ -54,10 +78,9 @@ function createCityCard(city) {
     const date = article.querySelector('.date');
 
     cityName.textContent = city.name;
-    timezone.textContent = city.timezone.replace('_', ' ');
+    timezone.textContent = city.timezone.replaceAll('_', ' ');
 
     cardMap.set(city.name, {
-        article,
         timezone,
         time,
         weekday,
@@ -71,7 +94,7 @@ function renderInitialCards() {
     const grid = document.getElementById('cityClockGrid');
     const fragment = document.createDocumentFragment();
 
-    cities.forEach((city) => {
+    cityTimezones.forEach((city) => {
         fragment.appendChild(createCityCard(city));
     });
 
@@ -79,18 +102,23 @@ function renderInitialCards() {
 }
 
 function updateCityDateTime() {
-    cities.forEach((city) => {
+    cityTimezones.forEach((city) => {
         const card = cardMap.get(city.name);
         const { date, month, weekday, time, zone } = getDateTime(city.timezone);
 
         card.time.textContent = time;
         card.weekday.textContent = `${weekday}, ${month}`;
         card.date.textContent = date;
-        card.timezone.textContent = `${city.timezone.replace('_', ' ')} · ${zone}`;
+        card.timezone.textContent = `${city.timezone.replaceAll('_', ' ')} · ${zone}`;
     });
 
     const lastUpdated = document.getElementById('lastUpdated');
-    lastUpdated.textContent = `Last updated ${moment().format('HH:mm:ss')}`;
+    lastUpdated.textContent = `Last updated ${getFormatter(Intl.DateTimeFormat().resolvedOptions().timeZone, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    }).format(new Date())}`;
 }
 
 function showError(message) {
@@ -107,7 +135,7 @@ function main() {
         if (timerId) {
             window.clearInterval(timerId);
         }
-        showError(error.message);
+        showError('Unable to display times in this browser.');
         console.error(error);
     }
 }
