@@ -1,4 +1,4 @@
-const cityTimezones = [
+const cities = [
     { name: 'Mexico City', timezone: 'America/Mexico_City' },
     { name: 'Bogota', timezone: 'America/Bogota' },
     { name: 'Buenos Aires', timezone: 'America/Argentina/Buenos_Aires' },
@@ -11,25 +11,23 @@ const cityTimezones = [
     { name: 'Tokyo', timezone: 'Asia/Tokyo' },
 ];
 
-const cardMap = new Map();
-let timerId;
-
 const formatters = new Map();
 
 function getFormatter(timezone, options) {
     const key = `${timezone}-${JSON.stringify(options)}`;
+    const cachedFormatter = formatters.get(key);
 
-    if (!formatters.has(key)) {
-        formatters.set(
-            key,
-            new Intl.DateTimeFormat('en-US', {
-                timeZone: timezone,
-                ...options,
-            })
-        );
+    if (cachedFormatter) {
+        return cachedFormatter;
     }
 
-    return formatters.get(key);
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        ...options,
+    });
+
+    formatters.set(key, formatter);
+    return formatter;
 }
 
 function getDateTime(timezone) {
@@ -55,13 +53,17 @@ function getDateTime(timezone) {
     };
 }
 
+function formatTimezone(timezone) {
+    return timezone.replaceAll('_', ' ');
+}
+
 function createCityCard(city) {
     const article = document.createElement('article');
     article.className = 'clock-card';
     article.setAttribute('aria-label', `Current time in ${city.name}`);
     article.innerHTML = `
         <div class="city-row">
-            <h3></h3>
+            <h2></h2>
             <span class="timezone"></span>
         </div>
         <p class="time-value"></p>
@@ -71,73 +73,45 @@ function createCityCard(city) {
         </div>
     `;
 
-    const cityName = article.querySelector('h3');
-    const timezone = article.querySelector('.timezone');
-    const time = article.querySelector('.time-value');
-    const weekday = article.querySelector('.weekday');
-    const date = article.querySelector('.date');
+    city.elements = {
+        timezone: article.querySelector('.timezone'),
+        time: article.querySelector('.time-value'),
+        weekday: article.querySelector('.weekday'),
+        date: article.querySelector('.date'),
+    };
 
-    cityName.textContent = city.name;
-    timezone.textContent = city.timezone.replaceAll('_', ' ');
-
-    cardMap.set(city.name, {
-        timezone,
-        time,
-        weekday,
-        date,
-    });
+    article.querySelector('h2').textContent = city.name;
+    city.elements.timezone.textContent = formatTimezone(city.timezone);
 
     return article;
 }
 
-function renderInitialCards() {
+function renderCards() {
     const grid = document.getElementById('cityClockGrid');
     const fragment = document.createDocumentFragment();
 
-    cityTimezones.forEach((city) => {
+    cities.forEach((city) => {
         fragment.appendChild(createCityCard(city));
     });
 
     grid.replaceChildren(fragment);
 }
 
-function updateCityDateTime() {
-    cityTimezones.forEach((city) => {
-        const card = cardMap.get(city.name);
+function updateCityTimes() {
+    cities.forEach((city) => {
         const { date, month, weekday, time, zone } = getDateTime(city.timezone);
 
-        card.time.textContent = time;
-        card.weekday.textContent = `${weekday}, ${month}`;
-        card.date.textContent = date;
-        card.timezone.textContent = `${city.timezone.replaceAll('_', ' ')} · ${zone}`;
+        city.elements.time.textContent = time;
+        city.elements.weekday.textContent = `${weekday}, ${month}`;
+        city.elements.date.textContent = date;
+        city.elements.timezone.textContent = `${formatTimezone(city.timezone)} · ${zone}`;
     });
-
-    const lastUpdated = document.getElementById('lastUpdated');
-    lastUpdated.textContent = `Last updated ${getFormatter(Intl.DateTimeFormat().resolvedOptions().timeZone, {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-    }).format(new Date())}`;
-}
-
-function showError(message) {
-    const grid = document.getElementById('cityClockGrid');
-    grid.innerHTML = `<p class="error-message">${message}</p>`;
 }
 
 function main() {
-    try {
-        renderInitialCards();
-        updateCityDateTime();
-        timerId = window.setInterval(updateCityDateTime, 1000);
-    } catch (error) {
-        if (timerId) {
-            window.clearInterval(timerId);
-        }
-        showError('Unable to display times in this browser.');
-        console.error(error);
-    }
+    renderCards();
+    updateCityTimes();
+    window.setInterval(updateCityTimes, 1000);
 }
 
 window.addEventListener('DOMContentLoaded', main);
