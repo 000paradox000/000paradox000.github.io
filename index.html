@@ -3,26 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>City Date and Time</title>
+    <meta name="description" content="A dark world clock dashboard showing current date and time across selected cities.">
+    <meta name="theme-color" content="#0d1117">
+    <title>World City Times</title>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <table>
-            <thead>
-            <tr>
-                <th>City</th>
-                <th>Date</th>
-                <th>Month and week day</th>
-                <th>Time</th>
-            </tr>
-            </thead>
-            <tbody id="cityDateTimeBody"></tbody>
-        </table>
-    </div>
+    <main class="app-shell">
+        <section class="hero" aria-labelledby="page-title">
+            <p class="eyebrow">Live world clock</p>
+            <h1 id="page-title">City date and time</h1>
+            <p class="subtitle">A dark, responsive dashboard for comparing local dates, weekdays, and times across major cities.</p>
+        </section>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.44/moment-timezone-with-data.min.js"></script>
-    <script src="script.js"></script>
+        <section class="panel" aria-labelledby="clock-title">
+            <div class="panel-header">
+                <div>
+                    <h2 id="clock-title">Current local times</h2>
+                    <p id="lastUpdated" class="last-updated" aria-live="polite">Updating…</p>
+                </div>
+                <span class="status-pill" aria-hidden="true">● Live</span>
+            </div>
+
+            <div id="cityClockGrid" class="clock-grid" aria-describedby="lastUpdated"></div>
+        </section>
+    </main>
+
+    <noscript>
+        <p class="noscript-message">Please enable JavaScript to see live city times.</p>
+    </noscript>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.44/moment-timezone-with-data.min.js" defer></script>
+    <script src="script.js" defer></script>
 </body>
 </html>

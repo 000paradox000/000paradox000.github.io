@@ -1,59 +1,115 @@
-const cityTimezones = {
-    'New Delhi': 'Asia/Kolkata',
-    'Tokyo': 'Asia/Tokyo',
-    'Buenos Aires': 'America/Argentina/Buenos_Aires',
-    'Madrid': 'Europe/Madrid',
-    'Berlin': 'Europe/Berlin',
-    'London': 'Europe/London',
-    'Bogota': 'America/Bogota',
-};
+const cities = [
+    { name: 'New Delhi', timezone: 'Asia/Kolkata' },
+    { name: 'Tokyo', timezone: 'Asia/Tokyo' },
+    { name: 'Buenos Aires', timezone: 'America/Argentina/Buenos_Aires' },
+    { name: 'Madrid', timezone: 'Europe/Madrid' },
+    { name: 'Berlin', timezone: 'Europe/Berlin' },
+    { name: 'London', timezone: 'Europe/London' },
+    { name: 'Bogota', timezone: 'America/Bogota' },
+];
 
-function getDateTime(cityName) {
-    if (!(cityName in cityTimezones)) {
-        throw new Error("Invalid city name");
+const cardMap = new Map();
+let timerId;
+
+function assertMomentTimezoneLoaded() {
+    if (!window.moment || !moment.tz) {
+        throw new Error('Moment Timezone failed to load. Check the CDN script URLs.');
     }
-
-    const cityTimezone = cityTimezones[cityName];
-    const currentTime = moment().tz(cityTimezone);
-    const dateTimeFmt = "YYYY-MM-DD HH:mm:ss";
-    const monthWeekdayFmt = "MMMM, dddd";
-    const [dateStr, timeStr] = currentTime.format(dateTimeFmt).split(" ");
-    const monthWeekdayStr = currentTime.format(monthWeekdayFmt);
-
-    return [dateStr, monthWeekdayStr, timeStr];
 }
 
-function displayCityDateTime(cityName) {
-    const [dateStr, monthWeekdayStr, timeStr] = getDateTime(cityName);
-    const tableBody = document.getElementById("cityDateTimeBody");
+function getDateTime(timezone) {
+    assertMomentTimezoneLoaded();
 
-    const row = tableBody.insertRow();
-    const cellCity = row.insertCell(0);
-    const cellDate = row.insertCell(1);
-    const monthWeekday = row.insertCell(2);
-    const cellTime = row.insertCell(3);
+    const currentTime = moment().tz(timezone);
 
-    cellCity.textContent = cityName;
-    cellDate.textContent = dateStr;
-    monthWeekday.textContent = monthWeekdayStr;
-    cellTime.textContent = timeStr;
+    return {
+        date: currentTime.format('YYYY-MM-DD'),
+        month: currentTime.format('MMMM'),
+        weekday: currentTime.format('dddd'),
+        time: currentTime.format('HH:mm:ss'),
+        zone: currentTime.format('z'),
+    };
 }
 
-function refreshCityDateTime() {
-    const tableBody = document.getElementById("cityDateTimeBody");
-    tableBody.innerHTML = ''; // Clear existing rows
+function createCityCard(city) {
+    const article = document.createElement('article');
+    article.className = 'clock-card';
+    article.setAttribute('aria-label', `Current time in ${city.name}`);
+    article.innerHTML = `
+        <div class="city-row">
+            <h3></h3>
+            <span class="timezone"></span>
+        </div>
+        <p class="time-value"></p>
+        <div class="date-row">
+            <span class="weekday"></span>
+            <span class="date"></span>
+        </div>
+    `;
 
-    for (const cityName in cityTimezones) {
-        displayCityDateTime(cityName);
-    }
+    const cityName = article.querySelector('h3');
+    const timezone = article.querySelector('.timezone');
+    const time = article.querySelector('.time-value');
+    const weekday = article.querySelector('.weekday');
+    const date = article.querySelector('.date');
+
+    cityName.textContent = city.name;
+    timezone.textContent = city.timezone.replace('_', ' ');
+
+    cardMap.set(city.name, {
+        article,
+        timezone,
+        time,
+        weekday,
+        date,
+    });
+
+    return article;
+}
+
+function renderInitialCards() {
+    const grid = document.getElementById('cityClockGrid');
+    const fragment = document.createDocumentFragment();
+
+    cities.forEach((city) => {
+        fragment.appendChild(createCityCard(city));
+    });
+
+    grid.replaceChildren(fragment);
+}
+
+function updateCityDateTime() {
+    cities.forEach((city) => {
+        const card = cardMap.get(city.name);
+        const { date, month, weekday, time, zone } = getDateTime(city.timezone);
+
+        card.time.textContent = time;
+        card.weekday.textContent = `${weekday}, ${month}`;
+        card.date.textContent = date;
+        card.timezone.textContent = `${city.timezone.replace('_', ' ')} · ${zone}`;
+    });
+
+    const lastUpdated = document.getElementById('lastUpdated');
+    lastUpdated.textContent = `Last updated ${moment().format('HH:mm:ss')}`;
+}
+
+function showError(message) {
+    const grid = document.getElementById('cityClockGrid');
+    grid.innerHTML = `<p class="error-message">${message}</p>`;
 }
 
 function main() {
-    // Initial display
-    refreshCityDateTime();
-
-    // Auto-refresh every second
-    setInterval(refreshCityDateTime, 1000);
+    try {
+        renderInitialCards();
+        updateCityDateTime();
+        timerId = window.setInterval(updateCityDateTime, 1000);
+    } catch (error) {
+        if (timerId) {
+            window.clearInterval(timerId);
+        }
+        showError(error.message);
+        console.error(error);
+    }
 }
 
-main();
+window.addEventListener('DOMContentLoaded', main);
