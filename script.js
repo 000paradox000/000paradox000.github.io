@@ -1,4 +1,5 @@
 const cities = [
+    { name: 'UTC', timezone: 'UTC' },
     { name: 'Mexico City', timezone: 'America/Mexico_City' },
     { name: 'Bogota', timezone: 'America/Bogota' },
     { name: 'Buenos Aires', timezone: 'America/Argentina/Buenos_Aires' },
