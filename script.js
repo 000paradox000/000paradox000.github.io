@@ -10,6 +10,7 @@ const cities = [
     { name: 'Warsaw', timezone: 'Europe/Warsaw' },
     { name: 'New Delhi', timezone: 'Asia/Kolkata' },
     { name: 'Tokyo', timezone: 'Asia/Tokyo' },
+    { name: 'Dubai', timezone: 'Asia/Dubai' },
 ];
 
 const formatters = new Map();
